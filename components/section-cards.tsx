@@ -37,13 +37,9 @@ function SkeletonCard() {
 
 export function SectionCards() {
   const fetcher = (url: string) => fetch(url).then(res => res.json());
-  const { data, error, isLoading } = useSWR("/api/guild", fetcher, { refreshInterval: 5000 });
+  const { data, error, isLoading } = useSWR("/api/guild", fetcher, { refreshInterval: 15000 });
 
-  if (error) {
-    return <div className="px-4 text-red-500">Ошибка загрузки данных</div>;
-  }
-
-  if (isLoading || !data) {
+  if (isLoading || !data || error) {
     return (
       <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
         <SkeletonCard />

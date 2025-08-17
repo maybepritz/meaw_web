@@ -25,7 +25,7 @@ export default async function Page({
       <AppSidebar variant="inset" user={session?.user} />
       <SidebarInset>
         <SiteHeader />
-          {children}
+        {children}
       </SidebarInset>
     </SidebarProvider>
   );

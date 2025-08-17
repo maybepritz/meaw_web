@@ -165,3 +165,16 @@ model MessageAttachment {
   width        Int?
   created_at   DateTime @default(now())
 }
+
+model GuildStat {
+  id          Int      @id @default(autoincrement())
+
+  date_hour   DateTime // начало часа (например 2025-08-17 14:00:00 UTC)
+
+  members     Int      @default(0)
+
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@unique([date_hour])
+}
