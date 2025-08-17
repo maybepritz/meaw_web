@@ -1,0 +1,167 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  discord_id   String    @unique @db.VarChar(20)
+  username     String
+  discriminator String?
+  avatar_url   String
+  locale       String    @db.VarChar(10)
+  role_name    String?
+  role_id      String?   @db.VarChar(20)
+  is_bot       Boolean   @default(false)
+  created_at   DateTime  @default(now())
+
+  tickets_authored   Ticket[] @relation("Author")
+  tickets_targeted   Ticket[] @relation("Target")
+  tickets_assigned   Ticket[] @relation("Assignee")
+  logs               TicketLog[]
+  sessions           Session[]
+  messages           Message[]
+  moderator          Moderator?
+}
+
+enum TicketCategory {
+  support
+  report
+  appeal
+}
+
+enum TicketStatus {
+  open
+  pending
+  closed
+}
+
+enum TicketPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum TicketAction {
+  created
+  closed
+  reopened
+  assigned
+  unassigned
+  updated
+  commented
+  deleted
+  category_changed
+  priority_changed
+}
+
+model Ticket {
+  id           Int           @id @default(autoincrement())
+  ticket_id    String        @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code         String?       @unique
+  title_slug   String?
+
+  author_id    String?       @db.VarChar(20)
+  author       User?         @relation("Author", fields: [author_id], references: [discord_id], onDelete: SetNull)
+
+  target_id    String?       @db.VarChar(20)
+  target       User?         @relation("Target", fields: [target_id], references: [discord_id], onDelete: SetNull)
+
+  assignee_id  String?       @db.VarChar(20)
+  assignee     User?         @relation("Assignee", fields: [assignee_id], references: [discord_id], onDelete: SetNull)
+
+  status       TicketStatus  @default(open)
+  category     TicketCategory
+  priority     TicketPriority @default(medium)
+
+  subject      String        @db.VarChar(200)
+  description  String        @db.VarChar(5000)
+
+  channel_id   String?       @db.VarChar(30)
+  guild_id     String?       @db.VarChar(30)
+
+  is_closed    Boolean       @default(false)
+  is_archived  Boolean       @default(false)
+  archived_at  DateTime?
+  meta         Json?
+
+  created_at   DateTime      @default(now())
+  updated_at   DateTime?     @updatedAt
+  closed_at    DateTime?
+  deleted_at   DateTime?
+
+  logs         TicketLog[]
+}
+
+model TicketLog {
+  id          Int          @id @default(autoincrement())
+  ticket      Ticket       @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  ticket_id   Int
+
+  user        User?        @relation(fields: [discord_id], references: [discord_id], onDelete: SetNull)
+  discord_id  String?      @db.VarChar(20)
+
+  action      TicketAction
+  description String?
+  created_at  DateTime     @default(now())
+}
+
+model Session {
+  id            Int       @id @default(autoincrement())
+  discord_id    String?   @db.VarChar(20)
+  user          User?     @relation(fields: [discord_id], references: [discord_id], onDelete: Cascade)
+  session_token String    @unique
+  created_at    DateTime  @default(now())
+  expires_at    DateTime?
+}
+
+model Moderator {
+  id         Int      @id @default(autoincrement())
+  discord_id String   @unique @db.VarChar(20)
+  user       User     @relation(fields: [discord_id], references: [discord_id], onDelete: Cascade)
+  role       String
+  token      String   @unique
+  added_by   String?  @db.VarChar(20)
+  added_at   DateTime @default(now())
+}
+
+model Message {
+  id          Int       @id @default(autoincrement())
+  message_id  String    @unique @db.VarChar(30)
+  channel_id  String    @db.VarChar(30)
+  author_id   String?   @db.VarChar(20)
+  author      User?     @relation(fields: [author_id], references: [discord_id])
+  content     String
+  created_at  DateTime  @default(now())
+  edited_at   DateTime?
+  deleted_at  DateTime?
+  edits       MessageEdit[]
+  attachments MessageAttachment[]
+}
+
+model MessageEdit {
+  id          Int       @id @default(autoincrement())
+  message     Message   @relation(fields: [message_id], references: [id], onDelete: Cascade)
+  message_id  Int
+  old_content String?
+  new_content String?
+  edited_at   DateTime  @default(now())
+}
+
+model MessageAttachment {
+  id           Int      @id @default(autoincrement())
+  message      Message  @relation(fields: [message_id], references: [id], onDelete: Cascade)
+  message_id   Int
+  url          String
+  filename     String?
+  size         Int?
+  content_type String?
+  height       Int?
+  width        Int?
+  created_at   DateTime @default(now())
+}
